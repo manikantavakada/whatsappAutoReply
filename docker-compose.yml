@@ -1,0 +1,22 @@
+version: "3.9"
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: wa_app
+      POSTGRES_PASSWORD: wa_app_password
+      POSTGRES_DB: wa_ai_assistant
+    ports:
+      - "5433:5432"
+    volumes:
+      - wa_pg_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U wa_app -d wa_ai_assistant"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  wa_pg_data:

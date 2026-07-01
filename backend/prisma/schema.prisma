@@ -1,0 +1,121 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Sender {
+  CUSTOMER
+  AI
+  HUMAN
+}
+
+model User {
+  id           String   @id @default(uuid())
+  name         String
+  email        String   @unique
+  passwordHash String
+  // jti of the most recently issued refresh token; lets a single logout
+  // or password change invalidate every other outstanding refresh token.
+  refreshTokenId String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  businesses Business[]
+
+  @@map("users")
+}
+
+model Business {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name      String
+
+  // WhatsApp Cloud API connection
+  waPhoneNumberId      String? @unique // Meta "Phone number ID"
+  waBusinessAccountId  String?
+  waAccessToken        String? // long-lived system user token (stored encrypted at rest by app layer)
+  waAppSecret          String? // App Secret of the Meta App that owns this number's webhook subscription
+  waDisplayNumber      String? // human readable number shown in dashboard
+  waVerifyToken        String  @default(cuid())
+  waConnectedAt        DateTime?
+
+  // AI behaviour
+  aiEnabled    Boolean @default(true)
+  welcomeNote  String? // shown to seller as a hint, not sent verbatim
+  aiTone       String  @default("friendly") // friendly | professional | concise
+  autoReplyDelaySec Int @default(0)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  products      Product[]
+  customers     Customer[]
+  messages      Message[]
+
+  @@map("businesses")
+}
+
+model Product {
+  id          String   @id @default(uuid())
+  businessId  String
+  business    Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+
+  name        String
+  description String?
+  price       Decimal  @db.Decimal(10, 2)
+  imageUrl    String?
+  sizes       String[] @default([])
+  colors      String[] @default([])
+  inStock     Boolean  @default(true)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([businessId])
+  @@map("products")
+}
+
+model Customer {
+  id            String    @id @default(uuid())
+  businessId    String
+  business      Business  @relation(fields: [businessId], references: [id], onDelete: Cascade)
+
+  waNumber      String // customer's WhatsApp number in E.164, no '+'
+  name          String?
+  aiPaused      Boolean   @default(false) // human takeover for this thread only
+  lastMessageAt DateTime?
+  unreadCount   Int       @default(0)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  messages Message[]
+
+  @@unique([businessId, waNumber])
+  @@index([businessId, lastMessageAt])
+  @@map("customers")
+}
+
+model Message {
+  id          String   @id @default(uuid())
+  businessId  String
+  business    Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  customerId  String
+  customer    Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
+
+  sender    Sender
+  content   String
+  waMessageId String? @unique
+  failed    Boolean @default(false)
+
+  createdAt DateTime @default(now())
+
+  @@index([businessId, createdAt])
+  @@index([customerId, createdAt])
+  @@map("messages")
+}

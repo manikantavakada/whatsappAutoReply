@@ -1,0 +1,40 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  color-scheme: light;
+}
+
+* {
+  border-color: theme('colors.line');
+}
+
+body {
+  background-color: theme('colors.paper');
+  color: theme('colors.ink');
+}
+
+/* Visible keyboard focus everywhere - not just on inputs */
+:focus-visible {
+  outline: 2px solid theme('colors.primary.DEFAULT');
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+.scrollbar-thin::-webkit-scrollbar {
+  width: 6px;
+}
+.scrollbar-thin::-webkit-scrollbar-thumb {
+  background-color: theme('colors.line');
+  border-radius: 999px;
+}
